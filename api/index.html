@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GitPulse Realtime Test</title>
+</head>
+<body>
+    <h1>🔴 Live GitHub Events</h1>
+    <div id="logs" style="font-family: monospace; height: 500px; overflow-y: scroll; border: 1px solid #333; padding: 10px; background: #f4f4f4;"></div>
+
+    <!-- Load Socket.io Client Library -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io("http://localhost:4000");
+        const logDiv = document.getElementById("logs");
+
+        socket.on("connect", () => {
+            console.log("Connected to server!");
+            addLog("✅ Connected to WebSocket Server");
+        });
+
+        socket.on("github_event", (event) => {
+            // Display the event details
+            const text = `[${event.type}] ${event.repo.name} - ${event.actor.login}`;
+            addLog(text);
+        });
+
+        function addLog(msg) {
+            const p = document.createElement("div");
+            p.textContent = msg;
+            logDiv.prepend(p); // Add to top
+            if (logDiv.children.length > 50) logDiv.lastChild.remove(); // Keep DOM clean
+        }
+    </script>
+</body>
+</html>

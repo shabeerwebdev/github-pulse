@@ -58,7 +58,3 @@ api/*.out
 # Ignore static files
 api/static/
 client/static/
-
-# Ignore HTML files in build
-api/*.html
-client/*.html
