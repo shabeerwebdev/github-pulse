@@ -10,52 +10,100 @@ services:
       - "27018:27017"
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # -----------------------------
   # BACKEND SERVICES
   # -----------------------------
   api:
-    build: ./api             # <--- CHANGED: Points to api folder
-    command: node routes/stats.js  # <--- CHANGED: Matches your tree structure
+    build: ./api
+    command: node src/services/stats/index.js
     ports:
       - "3000:3000"
     environment:
+      - NODE_ENV=production
+      - SERVICE_NAME=stats
       - MONGO_URL=mongodb://mongo:27017/github
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - mongo
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  ingest:
-    build: ./api             # <--- CHANGED
-    command: node ingest.js
+  consumer:
+    build: ./api
+    command: node src/services/consumer/index.js
     environment:
+      - NODE_ENV=production
+      - SERVICE_NAME=consumer
+      - MONGO_URL=mongodb://mongo:27017/github
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ingest:
+    build: ./api
+    command: node src/services/ingest/index.js
+    environment:
+      - NODE_ENV=production
+      - SERVICE_NAME=ingest
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      consumer:
+        condition: service_healthy
 
   realtime:
-    build: ./api             # <--- CHANGED
-    command: node realtime.js
+    build: ./api
+    command: node src/services/realtime/index.js
     ports:
       - "4000:4000"
     environment:
+      - NODE_ENV=production
+      - SERVICE_NAME=realtime
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # -----------------------------
   # FRONTEND & PROXY
   # -----------------------------
   client:
     build: ./client
-    # No ports exposed here, Nginx handles it
-  
+
   gateway:
     image: nginx:alpine
     ports:
