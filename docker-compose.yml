@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # -----------------------------
+  # INFRASTRUCTURE
+  # -----------------------------
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # -----------------------------
+  # BACKEND SERVICES
+  # -----------------------------
+  api:
+    build: ./api             # <--- CHANGED: Points to api folder
+    command: node routes/stats.js  # <--- CHANGED: Matches your tree structure
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/github
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+
+  ingest:
+    build: ./api             # <--- CHANGED
+    command: node ingest.js
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  realtime:
+    build: ./api             # <--- CHANGED
+    command: node realtime.js
+    ports:
+      - "4000:4000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  # -----------------------------
+  # FRONTEND & PROXY
+  # -----------------------------
+  client:
+    build: ./client
+    # No ports exposed here, Nginx handles it
+  
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - client
+      - api
+      - realtime
+
+volumes:
+  mongo_data:

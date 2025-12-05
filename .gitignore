@@ -1,0 +1,64 @@
+# Node.js
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+/dist/
+/build/
+/.next/
+/.nuxt/
+/.parcel-cache/
+
+# Vite
+/dist/
+/.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment files
+.env*
+
+# VS Code
+.vscode/
+
+# Docker
+*.pid
+*.seed
+*.bak
+*.tmp
+Dockerfile*
+!Dockerfile
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Others
+coverage/
+*.tgz
+
+# Ignore metadata
+client/metadata.json
+
+# Ignore infra and nginx logs
+infra/*.log
+nginx/*.log
+
+# Ignore API data
+api/*.db
+api/*.log
+
+# Ignore generated files
+api/*.out
+
+# Ignore static files
+api/static/
+client/static/
+
+# Ignore HTML files in build
+api/*.html
+client/*.html
